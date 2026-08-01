@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="台股短線訊號與反彈機會分析儀表板" />
+    <title>台股雷達｜短線訊號分析</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#" aria-label="台股雷達首頁">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span>台股雷達<small>TW Stock Radar</small></span>
+        </a>
+        <nav aria-label="主要選單">
+          <p class="nav-label">總覽</p>
+          <a class="nav-item active" href="#dashboard"><span>⌁</span>市場儀表板</a>
+          <a class="nav-item" href="#signals"><span>⌁</span>即時訊號 <b>12</b></a>
+          <a class="nav-item" href="#watchlist"><span>☆</span>我的觀察清單</a>
+          <p class="nav-label">分析工具</p>
+          <a class="nav-item" href="#oversold"><span>↘</span>超跌反彈</a>
+          <a class="nav-item" href="#overbought"><span>↗</span>過熱警示</a>
+          <a class="nav-item" href="#volume"><span>▥</span>量價異常</a>
+          <a class="nav-item" href="#backtest"><span>◴</span>策略回測</a>
+        </nav>
+        <div class="pro-card">
+          <span class="spark">✦</span>
+          <strong>解鎖完整分析</strong>
+          <p>更多自選股、即時提醒與策略回測</p>
+          <button type="button">升級專業版</button>
+        </div>
+        <button class="user-card" type="button">
+          <span class="avatar">陳</span><span><strong>陳大明</strong><small>免費方案</small></span><span>⋯</span>
+        </button>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div class="mobile-brand">台股雷達</div>
+          <label class="global-search"><span>⌕</span><input id="globalSearch" type="search" placeholder="搜尋股票代碼或名稱" autocomplete="off" /><kbd>⌘ K</kbd></label>
+          <div class="top-actions"><button class="icon-button" aria-label="通知">♢<span class="notification-dot"></span></button><button class="status-button"><i></i>資料已更新</button></div>
+        </header>
+
+        <div class="content" id="dashboard">
+          <section class="page-heading">
+            <div><p class="eyebrow">MARKET OVERVIEW</p><h1>早安，今天想找什麼機會？</h1><p>用數據掌握市場情緒，找出短線反彈與轉折訊號。</p></div>
+            <button class="refresh-button" id="refreshButton"><span>↻</span> 更新分析</button>
+          </section>
+
+          <section class="market-strip" aria-label="市場指數">
+            <article><div><span class="index-icon taiwan">TW</span><span><small>加權指數</small><strong>22,783.21</strong></span></div><p class="up">+152.61 <span>+0.67%</span></p></article>
+            <article><div><span class="index-icon otc">OTC</span><span><small>櫃買指數</small><strong>269.41</strong></span></div><p class="up">+2.85 <span>+1.07%</span></p></article>
+            <article class="sentiment"><div><span class="index-icon gauge">◔</span><span><small>市場情緒</small><strong>中性偏多</strong></span></div><div class="sentiment-score"><span>72</span><small>/ 100</small></div></article>
+          </section>
+
+          <section class="stats-grid">
+            <article class="stat-card"><div class="stat-top"><span class="metric-icon rebound">↗</span><span class="trend up">+3</span></div><p>反彈機會</p><div><strong>18</strong><span>檔股票</span></div><small>RSI 超跌後轉強</small></article>
+            <article class="stat-card"><div class="stat-top"><span class="metric-icon hot">⌁</span><span class="trend down">-2</span></div><p>過熱警示</p><div><strong>7</strong><span>檔股票</span></div><small>短線漲幅偏高</small></article>
+            <article class="stat-card"><div class="stat-top"><span class="metric-icon volume">▥</span><span class="trend up">+5</span></div><p>量價異常</p><div><strong>23</strong><span>檔股票</span></div><small>成交量明顯放大</small></article>
+            <article class="stat-card"><div class="stat-top"><span class="metric-icon signal">⌁</span><span class="trend new">NEW</span></div><p>今日新訊號</p><div><strong>12</strong><span>個訊號</span></div><small>近 30 分鐘新增 4 個</small></article>
+          </section>
+
+          <section class="analysis-section" id="signals">
+            <div class="section-heading"><div><h2>短線機會雷達</h2><p>依技術指標與量價動能綜合評估</p></div><div class="legend"><span><i class="dot rebound-dot"></i>反彈</span><span><i class="dot hot-dot"></i>過熱</span><span><i class="dot watch-dot"></i>觀察</span></div></div>
+            <div class="tabs" role="tablist"><button class="active" data-filter="all">全部訊號 <span>48</span></button><button data-filter="rebound">反彈機會 <span>18</span></button><button data-filter="hot">過熱警示 <span>7</span></button><button data-filter="volume">量價異常 <span>23</span></button></div>
+            <div class="table-card">
+              <div class="table-tools"><label><span>⌕</span><input id="tableSearch" type="search" placeholder="搜尋股票" /></label><div><button class="filter-button" id="filterButton">☷ 篩選</button><button class="outline-button" id="watchOnly">☆ 僅看自選</button></div></div>
+              <div class="table-scroll"><table><thead><tr><th>股票</th><th>目前股價</th><th>今日漲跌</th><th>RSI (14)</th><th>量比</th><th>訊號強度</th><th>分析結果</th><th></th></tr></thead><tbody id="stockRows"></tbody></table></div>
+              <div class="empty-state" id="emptyState" hidden>找不到符合條件的股票</div>
+              <div class="table-footer"><span id="resultCount">顯示 6 筆，共 48 筆</span><button id="loadMore">查看全部訊號 →</button></div>
+            </div>
+          </section>
+
+          <p class="disclaimer">本工具內容僅供資訊與學術研究參考，不構成任何投資建議。投資人應自行評估風險並承擔投資結果。</p>
+        </div>
+      </main>
+    </div>
+
+    <dialog id="stockDialog"><button class="dialog-close" aria-label="關閉">×</button><div class="dialog-title"><div><span id="dialogCode"></span><h2 id="dialogName"></h2></div><span class="signal-pill" id="dialogSignal"></span></div><div class="dialog-price"><strong id="dialogPrice"></strong><span id="dialogChange"></span></div><canvas id="priceChart" width="700" height="220" aria-label="近期價格走勢圖"></canvas><div class="dialog-metrics" id="dialogMetrics"></div><div class="insight"><span>AI</span><div><strong>訊號解讀</strong><p id="dialogInsight"></p></div></div><button class="primary-action">＋ 加入價格提醒</button></dialog>
+    <div class="toast" id="toast" role="status">分析資料已更新</div>
+    <script src="app.js"></script>
+  </body>
+</html>
