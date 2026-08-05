@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -38,3 +38,52 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  verify:
+    if: always()
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout for status report
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Verify the public website
+        id: verify
+        shell: bash
+        run: |
+          URL="https://jasonjjhan.github.io/simple-weather-app/"
+          CODE="000"
+          MATCH="false"
+          BYTES="0"
+          for attempt in $(seq 1 18); do
+            CODE=$(curl -L -sS --connect-timeout 10 --max-time 30 -o /tmp/campusloop.html -w "%{http_code}" "$URL" || true)
+            BYTES=$(wc -c < /tmp/campusloop.html 2>/dev/null || echo 0)
+            if [ "$CODE" = "200" ] && grep -qi "CampusLoop" /tmp/campusloop.html; then
+              MATCH="true"
+              break
+            fi
+            sleep 10
+          done
+          cat > deployment-status.json <<EOF
+          {
+            "url": "$URL",
+            "http_status": "$CODE",
+            "campusloop_content_found": $MATCH,
+            "response_bytes": $BYTES,
+            "deploy_job_result": "${{ needs.deploy.result }}",
+            "workflow_run_id": "${{ github.run_id }}",
+            "verified_at_utc": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+          cat deployment-status.json
+
+      - name: Save verification result to repository
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deployment-status.json
+          git commit -m "Record CampusLoop Pages verification" || exit 0
+          git push origin HEAD:main
