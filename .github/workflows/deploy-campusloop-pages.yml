@@ -23,8 +23,25 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - name: Confirm GitHub Actions is running
-        run: echo "CampusLoop workflow is active"
+      - name: Verify CampusLoop public URL from an external GitHub runner
+        shell: bash
+        run: |
+          URL="https://jasonjjhan.github.io/simple-weather-app/"
+          curl -L -sS --connect-timeout 15 --max-time 45 -D /tmp/headers.txt -o /tmp/page.html "$URL"
+          CODE=$(awk 'toupper($1) ~ /^HTTP\// {code=$2} END {print code}' /tmp/headers.txt)
+          BYTES=$(wc -c < /tmp/page.html)
+          echo "CAMPUSLOOP_URL=$URL"
+          echo "CAMPUSLOOP_HTTP_STATUS=$CODE"
+          echo "CAMPUSLOOP_RESPONSE_BYTES=$BYTES"
+          if grep -qi "CampusLoop" /tmp/page.html; then
+            echo "CAMPUSLOOP_CONTENT_FOUND=true"
+          else
+            echo "CAMPUSLOOP_CONTENT_FOUND=false"
+            echo "----- RESPONSE PREVIEW -----"
+            head -c 500 /tmp/page.html || true
+            exit 1
+          fi
+          test "$CODE" = "200"
 
   deploy:
     if: github.event_name != 'pull_request'
