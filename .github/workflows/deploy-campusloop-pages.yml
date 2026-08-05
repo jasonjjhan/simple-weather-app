@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -12,11 +15,19 @@ permissions:
   id-token: write
 
 concurrency:
-  group: github-pages
+  group: github-pages-${{ github.event_name }}
   cancel-in-progress: false
 
 jobs:
+  diagnostic:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm GitHub Actions is running
+        run: echo "CampusLoop workflow is active"
+
   deploy:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -40,7 +51,7 @@ jobs:
         uses: actions/deploy-pages@v4
 
   verify:
-    if: always()
+    if: always() && github.event_name != 'pull_request'
     needs: deploy
     runs-on: ubuntu-latest
     steps:
@@ -50,7 +61,6 @@ jobs:
           ref: main
 
       - name: Verify the public website
-        id: verify
         shell: bash
         run: |
           URL="https://jasonjjhan.github.io/simple-weather-app/"
