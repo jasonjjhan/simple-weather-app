@@ -3,6 +3,7 @@ name: Deploy CampusLoop V3 to GitHub Pages
 on:
   push:
     branches:
+      - main
       - campusloop-v3
   workflow_dispatch:
 
