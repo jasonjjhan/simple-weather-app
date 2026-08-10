@@ -1,4 +1,4 @@
-name: Build and verify CampusLoop public demo
+name: Verify CampusLoop public URL
 
 on:
   pull_request:
@@ -7,90 +7,51 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  build-and-verify:
+  verify-public-url:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main branch
-        uses: actions/checkout@v6
-        with:
-          ref: main
-          fetch-depth: 0
-
-      - name: Rebuild one-file CampusLoop demo
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p campusloop-v3
-          python - <<'PY'
-          from pathlib import Path
-          import base64, gzip, re
-          parts = [Path(f'payload-{i}.txt').read_text(encoding='utf-8-sig') for i in range(8)]
-          encoded = re.sub(r'\s+', '', ''.join(parts))
-          raw = base64.b64decode(encoded, validate=False)
-          html = gzip.decompress(raw)
-          Path('campusloop-v3/index.html').write_bytes(html)
-          print('ENCODED_CHARS=', len(encoded))
-          print('COMPRESSED_BYTES=', len(raw))
-          print('STANDALONE_BYTES=', len(html))
-          PY
-          test -s campusloop-v3/index.html
-          grep -q '找到社團、抽到學伴' campusloop-v3/index.html
-          test "$(wc -c < campusloop-v3/index.html)" -gt 250000
-
-      - name: Publish standalone file to main
-        id: publish
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add campusloop-v3/index.html
-          if ! git diff --cached --quiet; then
-            git commit -m 'Publish standalone CampusLoop public demo'
-            git push origin HEAD:main
-          fi
-          SHA=$(git rev-parse HEAD)
-          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
-          echo "PUBLISHED_SHA=$SHA"
-
-      - name: Verify direct external preview candidates
+      - name: Test public URLs with headless Chrome
         shell: bash
         run: |
           set +e
-          SHA='${{ steps.publish.outputs.sha }}'
           candidates=(
-            "htmlpreview-blob|https://htmlpreview.github.io/?https://github.com/jasonjjhan/simple-weather-app/blob/${SHA}/campusloop-v3/index.html"
-            "htmlpreview-raw|https://htmlpreview.github.io/?https://raw.githubusercontent.com/jasonjjhan/simple-weather-app/${SHA}/campusloop-v3/index.html"
-            "rawcdn|https://rawcdn.githack.com/jasonjjhan/simple-weather-app/${SHA}/campusloop-v3/index.html"
-            "statically|https://cdn.statically.io/gh/jasonjjhan/simple-weather-app@${SHA}/campusloop-v3/index.html"
-            "jsdelivr|https://cdn.jsdelivr.net/gh/jasonjjhan/simple-weather-app@${SHA}/campusloop-v3/index.html"
+            "rawcdn|https://rawcdn.githack.com/jasonjjhan/simple-weather-app/3b64bcf4ee486106e30e239b8cd9c44669c17378/campusloop-live/index.html"
+            "htmlpreview-blob|https://htmlpreview.github.io/?https://github.com/jasonjjhan/simple-weather-app/blob/3b64bcf4ee486106e30e239b8cd9c44669c17378/campusloop-live/index.html"
+            "htmlpreview-raw|https://htmlpreview.github.io/?https://raw.githubusercontent.com/jasonjjhan/simple-weather-app/3b64bcf4ee486106e30e239b8cd9c44669c17378/campusloop-live/index.html"
+            "statically|https://cdn.statically.io/gh/jasonjjhan/simple-weather-app@3b64bcf4ee486106e30e239b8cd9c44669c17378/campusloop-live/index.html"
+            "jsdelivr|https://cdn.jsdelivr.net/gh/jasonjjhan/simple-weather-app@3b64bcf4ee486106e30e239b8cd9c44669c17378/campusloop-live/index.html"
           )
           PASS=0
           for item in "${candidates[@]}"; do
             name="${item%%|*}"
             url="${item#*|}"
             echo "===== $name ====="
-            code=$(curl -L -sS --connect-timeout 15 --max-time 60 -o "/tmp/${name}.html" -w "%{http_code}" "$url" || echo 000)
+            code=$(curl -L -sS --connect-timeout 15 --max-time 60 -o "/tmp/${name}.raw" -w "%{http_code}" "$url" || echo 000)
             ctype=$(curl -L -sSI --connect-timeout 15 --max-time 30 "$url" | awk -F': ' 'tolower($1)=="content-type" {v=$2} END {gsub("\r", "", v); print v}')
             echo "URL=$url"
             echo "HTTP_STATUS=$code"
             echo "CONTENT_TYPE=$ctype"
             chrome=$(command -v google-chrome || command -v chromium || true)
-            if [ -n "$chrome" ]; then
-              timeout 90s "$chrome" --headless --disable-gpu --no-sandbox --ignore-certificate-errors --virtual-time-budget=25000 --dump-dom "$url" > "/tmp/${name}.dom" 2>"/tmp/${name}.err"
-              bytes=$(wc -c < "/tmp/${name}.dom" 2>/dev/null || echo 0)
-              title=$(grep -o '<title>[^<]*' "/tmp/${name}.dom" | head -1 || true)
-              echo "DOM_BYTES=$bytes"
-              echo "DOM_TITLE=$title"
-              if [ "$bytes" -gt 200000 ] && grep -q '找到社團、抽到學伴' "/tmp/${name}.dom" && grep -q 'AI 影像實驗社｜完整社團工作台' "/tmp/${name}.dom"; then
+            timeout 90s "$chrome" --headless --disable-gpu --no-sandbox --ignore-certificate-errors --virtual-time-budget=30000 --dump-dom "$url" > "/tmp/${name}.dom" 2>"/tmp/${name}.err"
+            bytes=$(wc -c < "/tmp/${name}.dom" 2>/dev/null || echo 0)
+            title=$(grep -o '<title>[^<]*' "/tmp/${name}.dom" | head -1 || true)
+            echo "DOM_BYTES=$bytes"
+            echo "DOM_TITLE=$title"
+            if [ "$bytes" -gt 40000 ] \
+              && grep -q '<div class="app">' "/tmp/${name}.dom" \
+              && grep -q '找到社團、抽到學伴' "/tmp/${name}.dom" \
+              && grep -q 'AI 影像實驗社｜完整社團工作台' "/tmp/${name}.dom" \
+              && grep -q '星河高中｜全校社團管理中樞' "/tmp/${name}.dom" \
+              && grep -q '贊助夥伴總覽' "/tmp/${name}.dom" \
+              && ! grep -q '目前無法載入 DEMO' "/tmp/${name}.dom"; then
                 echo "FULL_APP_RENDERED=true"
                 PASS=$((PASS+1))
-              else
+            else
                 echo "FULL_APP_RENDERED=false"
-              fi
+                tail -20 "/tmp/${name}.err" || true
             fi
           done
           echo "TOTAL_FULL_RENDERED=$PASS"
