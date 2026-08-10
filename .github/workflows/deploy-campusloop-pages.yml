@@ -1,99 +1,53 @@
-name: Deploy CampusLoop V3 to GitHub Pages
+name: Verify CampusLoop main public URL
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pages: write
-  id-token: write
-
-concurrency:
-  group: github-pages-${{ github.event_name }}
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  diagnostic:
-    if: github.event_name == 'pull_request'
+  verify-main-url:
     runs-on: ubuntu-latest
     steps:
-      - name: Confirm GitHub Actions is running
-        run: echo "CampusLoop workflow is active"
-
-  deploy:
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: .
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-  verify:
-    if: always() && github.event_name != 'pull_request'
-    needs: deploy
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout for status report
-        uses: actions/checkout@v6
-        with:
-          ref: main
-
-      - name: Verify the public website
+      - name: Test stable main-branch public URLs
         shell: bash
         run: |
-          URL="https://jasonjjhan.github.io/simple-weather-app/"
-          CODE="000"
-          MATCH="false"
-          BYTES="0"
-          for attempt in $(seq 1 18); do
-            CODE=$(curl -L -sS --connect-timeout 10 --max-time 30 -o /tmp/campusloop.html -w "%{http_code}" "$URL" || true)
-            BYTES=$(wc -c < /tmp/campusloop.html 2>/dev/null || echo 0)
-            if [ "$CODE" = "200" ] && grep -qi "CampusLoop" /tmp/campusloop.html; then
-              MATCH="true"
-              break
+          set +e
+          candidates=(
+            "main-blob|https://htmlpreview.github.io/?https://github.com/jasonjjhan/simple-weather-app/blob/main/campusloop-live/index.html"
+            "main-raw|https://htmlpreview.github.io/?https://raw.githubusercontent.com/jasonjjhan/simple-weather-app/main/campusloop-live/index.html"
+          )
+          PASS=0
+          for item in "${candidates[@]}"; do
+            name="${item%%|*}"
+            url="${item#*|}"
+            echo "===== $name ====="
+            code=$(curl -L -sS --connect-timeout 15 --max-time 60 -o "/tmp/${name}.raw" -w "%{http_code}" "$url" || echo 000)
+            echo "URL=$url"
+            echo "HTTP_STATUS=$code"
+            chrome=$(command -v google-chrome || command -v chromium || true)
+            timeout 90s "$chrome" --headless --disable-gpu --no-sandbox --ignore-certificate-errors --virtual-time-budget=30000 --dump-dom "$url" > "/tmp/${name}.dom" 2>"/tmp/${name}.err"
+            bytes=$(wc -c < "/tmp/${name}.dom" 2>/dev/null || echo 0)
+            title=$(grep -o '<title>[^<]*' "/tmp/${name}.dom" | head -1 || true)
+            echo "DOM_BYTES=$bytes"
+            echo "DOM_TITLE=$title"
+            if [ "$bytes" -gt 40000 ] \
+              && grep -q '<div class="app">' "/tmp/${name}.dom" \
+              && grep -q '找到社團、抽到學伴' "/tmp/${name}.dom" \
+              && grep -q 'AI 影像實驗社｜完整社團工作台' "/tmp/${name}.dom" \
+              && grep -q '星河高中｜全校社團管理中樞' "/tmp/${name}.dom" \
+              && grep -q '贊助夥伴總覽' "/tmp/${name}.dom" \
+              && ! grep -q '目前無法載入 DEMO' "/tmp/${name}.dom"; then
+                echo "FULL_APP_RENDERED=true"
+                PASS=$((PASS+1))
+            else
+                echo "FULL_APP_RENDERED=false"
+                tail -20 "/tmp/${name}.err" || true
             fi
-            sleep 10
           done
-          cat > deployment-status.json <<EOF
-          {
-            "url": "$URL",
-            "http_status": "$CODE",
-            "campusloop_content_found": $MATCH,
-            "response_bytes": $BYTES,
-            "deploy_job_result": "${{ needs.deploy.result }}",
-            "workflow_run_id": "${{ github.run_id }}",
-            "verified_at_utc": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          }
-          EOF
-          cat deployment-status.json
-
-      - name: Save verification result to repository
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add deployment-status.json
-          git commit -m "Record CampusLoop Pages verification" || exit 0
-          git push origin HEAD:main
+          echo "TOTAL_FULL_RENDERED=$PASS"
+          test "$PASS" -eq 2
