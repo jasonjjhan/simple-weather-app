@@ -1,0 +1,49 @@
+name: Build CampusLoop standalone public demo
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build-campusloop-standalone.yml'
+      - 'payload-*.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Rebuild standalone CampusLoop HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p campusloop-v3
+          cat payload-0.txt payload-1.txt payload-2.txt payload-3.txt payload-4.txt payload-5.txt payload-6.txt payload-7.txt \
+            | tr -d '\r\n\t ' \
+            | base64 --decode \
+            | gzip --decompress \
+            > campusloop-v3/index.html
+          test -s campusloop-v3/index.html
+          grep -qi 'CampusLoop' campusloop-v3/index.html
+          echo 'CampusLoop standalone file bytes:' $(wc -c < campusloop-v3/index.html)
+
+      - name: Commit standalone public demo
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add campusloop-v3/index.html
+          if git diff --cached --quiet; then
+            echo 'Standalone demo is already current.'
+            exit 0
+          fi
+          git commit -m 'Publish standalone CampusLoop public demo'
+          git push origin HEAD:main
