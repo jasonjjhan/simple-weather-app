@@ -24,15 +24,21 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p campusloop-v3
-          cat payload-0.txt payload-1.txt payload-2.txt payload-3.txt payload-4.txt payload-5.txt payload-6.txt payload-7.txt \
-            | tr -d '\r\n\t ' \
-            | base64 --decode \
-            | gzip --decompress \
-            > campusloop-v3/index.html
+          python - <<'PY'
+          from pathlib import Path
+          import base64, gzip, re
+          parts = [Path(f'payload-{i}.txt').read_text(encoding='utf-8-sig') for i in range(8)]
+          encoded = re.sub(r'\s+', '', ''.join(parts))
+          raw = base64.b64decode(encoded, validate=False)
+          html = gzip.decompress(raw)
+          Path('campusloop-v3/index.html').write_bytes(html)
+          print('ENCODED_CHARS=', len(encoded))
+          print('COMPRESSED_BYTES=', len(raw))
+          print('STANDALONE_BYTES=', len(html))
+          PY
           test -s campusloop-v3/index.html
           grep -q '找到社團、抽到學伴' campusloop-v3/index.html
           test "$(wc -c < campusloop-v3/index.html)" -gt 250000
-          echo "STANDALONE_BYTES=$(wc -c < campusloop-v3/index.html)"
 
       - name: Publish standalone file to main
         id: publish
