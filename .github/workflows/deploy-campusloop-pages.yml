@@ -1,4 +1,4 @@
-name: Verify CampusLoop public URL
+name: Verify CampusLoop main public URL
 
 on:
   pull_request:
@@ -10,19 +10,16 @@ permissions:
   contents: read
 
 jobs:
-  verify-public-url:
+  verify-main-url:
     runs-on: ubuntu-latest
     steps:
-      - name: Test public URLs with headless Chrome
+      - name: Test stable main-branch public URLs
         shell: bash
         run: |
           set +e
           candidates=(
-            "rawcdn|https://rawcdn.githack.com/jasonjjhan/simple-weather-app/3b64bcf4ee486106e30e239b8cd9c44669c17378/campusloop-live/index.html"
-            "htmlpreview-blob|https://htmlpreview.github.io/?https://github.com/jasonjjhan/simple-weather-app/blob/3b64bcf4ee486106e30e239b8cd9c44669c17378/campusloop-live/index.html"
-            "htmlpreview-raw|https://htmlpreview.github.io/?https://raw.githubusercontent.com/jasonjjhan/simple-weather-app/3b64bcf4ee486106e30e239b8cd9c44669c17378/campusloop-live/index.html"
-            "statically|https://cdn.statically.io/gh/jasonjjhan/simple-weather-app@3b64bcf4ee486106e30e239b8cd9c44669c17378/campusloop-live/index.html"
-            "jsdelivr|https://cdn.jsdelivr.net/gh/jasonjjhan/simple-weather-app@3b64bcf4ee486106e30e239b8cd9c44669c17378/campusloop-live/index.html"
+            "main-blob|https://htmlpreview.github.io/?https://github.com/jasonjjhan/simple-weather-app/blob/main/campusloop-live/index.html"
+            "main-raw|https://htmlpreview.github.io/?https://raw.githubusercontent.com/jasonjjhan/simple-weather-app/main/campusloop-live/index.html"
           )
           PASS=0
           for item in "${candidates[@]}"; do
@@ -30,10 +27,8 @@ jobs:
             url="${item#*|}"
             echo "===== $name ====="
             code=$(curl -L -sS --connect-timeout 15 --max-time 60 -o "/tmp/${name}.raw" -w "%{http_code}" "$url" || echo 000)
-            ctype=$(curl -L -sSI --connect-timeout 15 --max-time 30 "$url" | awk -F': ' 'tolower($1)=="content-type" {v=$2} END {gsub("\r", "", v); print v}')
             echo "URL=$url"
             echo "HTTP_STATUS=$code"
-            echo "CONTENT_TYPE=$ctype"
             chrome=$(command -v google-chrome || command -v chromium || true)
             timeout 90s "$chrome" --headless --disable-gpu --no-sandbox --ignore-certificate-errors --virtual-time-budget=30000 --dump-dom "$url" > "/tmp/${name}.dom" 2>"/tmp/${name}.err"
             bytes=$(wc -c < "/tmp/${name}.dom" 2>/dev/null || echo 0)
@@ -55,4 +50,4 @@ jobs:
             fi
           done
           echo "TOTAL_FULL_RENDERED=$PASS"
-          test "$PASS" -ge 1
+          test "$PASS" -eq 2
