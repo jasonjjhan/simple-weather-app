@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="CampusLoop 高校社群平台公開測試">
+<title>CampusLoop｜公開測試載入中</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(145deg,#f5f8ff,#f7f3ff);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif;color:#17213b}.load{width:min(620px,100%);padding:38px;border:1px solid #e1e7f6;border-radius:26px;background:#fff;box-shadow:0 22px 70px rgba(55,72,150,.15);text-align:center}.logo{width:54px;height:54px;margin:0 auto 18px;border-radius:17px;background:linear-gradient(135deg,#276bff,#8247ed);display:grid;place-items:center}.logo:before{content:"";width:25px;height:14px;border:5px solid #fff;border-radius:50%}.spinner{width:36px;height:36px;margin:0 auto 16px;border:4px solid #e7ebff;border-top-color:#5364e9;border-radius:50%;animation:s .9s linear infinite}h1{margin:0 0 8px;font-size:24px}p{margin:0;color:#6d7690;line-height:1.7}.note{display:block;margin-top:14px;color:#9aa2b7;font-size:12px}@keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="load"><div class="logo"></div><div class="spinner"></div><h1>CampusLoop 載入中</h1><p>正在開啟高校社群 × 社團作業系統 × 安全成長平台。</p><span class="note">公開測試版｜所有人物、學校、活動與數據皆為虛構示範資料</span></div>
+<script>
+(async()=>{
+  try{
+    if(!('DecompressionStream' in window)) throw new Error('unsupported');
+    const base='https://raw.githubusercontent.com/jasonjjhan/simple-weather-app/193163abe8d9ef1239862146892a39aee701cdb7/campusloop-live/';
+    const parts=await Promise.all([0,1,2].map(async i=>{
+      const r=await fetch(base+'payload-'+i+'.txt',{cache:'no-store'});
+      if(!r.ok) throw new Error('load '+i);
+      return r.text();
+    }));
+    const b64=parts.join('').replace(/\s/g,'');
+    const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+    const html=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+    document.open();document.write(html);document.close();
+  }catch(e){
+    console.error(e);
+    document.body.innerHTML='<div class="load"><div class="logo"></div><h1>目前無法載入 DEMO</h1><p>請改用最新版 Chrome、Edge、Safari 或 Firefox 後重新整理。</p></div>';
+  }
+})();
+</script>
+</body>
+</html>
